@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowViz Code Viewer - Real Code</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: #2a2a2a;
+            padding: 20px;
+            border-bottom: 2px solid #4FC3F7;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .file-section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .file-header {
+            background: #333;
+            padding: 15px 20px;
+            border-bottom: 1px solid #444;
+        }
+        
+        .file-path {
+            color: #4FC3F7;
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .file-description {
+            color: #ccc;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .swift-keyword { color: #FF7AB2; }
+        .swift-string { color: #FC6A5D; }
+        .swift-comment { color: #6C7986; }
+        .swift-type { color: #5DD8FF; }
+        .swift-function { color: #67B7A4; }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .nav-button {
+            background: #4FC3F7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .nav-button:hover {
+            background: #29B6F6;
+        }
+        
+        .nav-button.active {
+            background: #0277BD;
+        }
+        
+        .architecture-overview {
+            background: linear-gradient(135deg, #2a2a2a, #333);
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid #4FC3F7;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #81C784;
+        }
+        
+        .feature-card h3 {
+            color: #81C784;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌌 FlowViz Code Explorer</h1>
+        <p>Interactive SwiftUI + Metal Flow Visualization</p>
+    </div>
+    
+    <div class="container">
+        <div class="nav-buttons">
+            <button class="nav-button active" onclick="showOverview()">🏗️ Architecture</button>
+            <button class="nav-button" onclick="showFile('contentview')">📱 ContentView</button>
+            <button class="nav-button" onclick="showFile('viewmodel')">🧠 ViewModel</button>
+            <button class="nav-button" onclick="showFile('controls')">🎛️ Controls</button>
+            <button class="nav-button" onclick="showFile('metal')">⚡ Metal Renderer</button>
+            <button class="nav-button" onclick="showFile('shaders')">🎨 Shaders</button>
+            <button class="nav-button" onclick="showFile('velocity')">🌊 Velocity Grid</button>
+        </div>
+        
+        <div id="content">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        function showOverview() {
+            setActiveButton(0);
+            document.getElementById('content').innerHTML = `
+                <div class="architecture-overview">
+                    <h2>🌌 FlowViz Architecture</h2>
+                    <p>A sophisticated Mac-native app combining SwiftUI, Metal, and machine learning for real-time flow visualization.</p>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h3>📱 SwiftUI Frontend</h3>
+                            <p>Modern declarative UI with reactive state management using @Published properties and ObservableObject patterns.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h3>⚡ Metal Renderer</h3>
+                            <p>GPU-accelerated particle system with 10,000+ particles, compute shaders, and 60 FPS real-time rendering.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h3>🧮 Flow Mathematics</h3>
+                            <p>Flow Matching, Diffusion models, obstacle avoidance, and velocity field computation with grid sampling.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h3>🎮 Interactive Controls</h3>
+                            <p>3-tab interface for flow parameters, particle settings, scene management, and real-time adjustments.</p>
+                        </div>
+                    </div>
+                    
+                    <h3>🎯 Key Features</h3>
+                    <ul style="margin: 20px 0; color: #ccc;">
+                        <li>🖱️ <strong>Click to add obstacles</strong> - Real-time flow field updates</li>
+                        <li>🎯 <strong>Drag start/goal points</strong> - Interactive trajectory planning</li>
+                        <li>⚡ <strong>GPU particle system</strong> - Metal compute shaders for performance</li>
+                        <li>🎛️ <strong>Real-time controls</strong> - Adjust parameters and see instant results</li>
+                        <li>📋 <strong>Scene presets</strong> - Maze, Spiral, Vortex, and more</li>
+                        <li>🤖 <strong>ML integration</strong> - Core ML models for neural flow fields</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        function showFile(fileType) {
+            const files = {
+                contentview: {
+                    title: 'ContentView.swift - Main UI Layout',
+                    description: 'The primary SwiftUI view combining Metal rendering with interactive controls',
+                    code: `import SwiftUI
+import MetalKit
+
+struct ContentView: View {
+    @StateObject private var viewModel = FlowVizViewModel()
+    @State private var showControls = true
+    
+    var body: some View {
+        ZStack {
+            // Main Metal rendering view - Full screen particle system
+            MetalView(viewModel: viewModel)
+                .ignoresSafeArea(.all)
+            
+            // Overlay UI elements
+            VStack {
+                // Top HUD with performance info
+                HStack {
+                    HUD(viewModel: viewModel)
+                    Spacer()
+                    // Toggle button for controls panel
+                    Button(action: { showControls.toggle() }) {
+                        Image(systemName: showControls ? "sidebar.right" : "sidebar.left")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .background(Circle().fill(.ultraThinMaterial))
+                            .padding(8)
+                    }
+                }
+                .padding()
+                
+                Spacer()
+            }
+            
+            // Side controls panel (3 tabs)
+            if showControls {
+                HStack {
+                    Spacer()
+                    ControlsPanel(viewModel: viewModel)
+                        .frame(width: 300)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(12)
+                        .padding()
+                }
+            }
+        }
+        .onAppear {
+            viewModel.setupMetal()  // Initialize Metal renderer
+        }
+    }
+}
+
+// NSViewRepresentable wrapper for MTKView
+struct MetalView: NSViewRepresentable {
+    let viewModel: FlowVizViewModel
+    
+    func makeNSView(context: Context) -> MTKView {
+        let metalView = MTKView()
+        metalView.device = MTLCreateSystemDefaultDevice()
+        metalView.delegate = viewModel.renderer
+        metalView.preferredFramesPerSecond = 60
+        metalView.clearColor = MTLClearColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 1.0)
+        
+        viewModel.setupRenderer(metalView: metalView)
+        return metalView
+    }
+    
+    func updateNSView(_ nsView: MTKView, context: Context) {
+        // Update view if needed
+    }
+}`
+                },
+                viewmodel: {
+                    title: 'ViewModel.swift - App State Management',
+                    description: 'ObservableObject managing reactive state, flow fields, and user interactions',
+                    code: `import SwiftUI
+import MetalKit
+import Combine
+
+class FlowVizViewModel: ObservableObject {
+    // MARK: - Published Properties (Reactive State)
+    @Published var isPlaying = true
+    @Published var particleCount: Float = 10000
+    @Published var flowSpeed: Float = 1.0
+    @Published var visualizationMode: VisualizationMode = .flowMatching
+    @Published var showVelocityField = true
+    @Published var showTrajectories = true
+    @Published var currentScene = "Default"
+    
+    // MARK: - Flow Properties
+    @Published var startPoint = CGPoint(x: 0.2, y: 0.5)
+    @Published var goalPoint = CGPoint(x: 0.8, y: 0.5)
+    @Published var obstacles: [Obstacle] = []
+    
+    // MARK: - Core Components
+    var renderer: MetalRenderer!
+    private var velocityGrid: VelocityGrid!
+    private var distanceField: DistanceField!
+    private var modelIO: ModelIO!
+    
+    func updateVelocityField() {
+        guard let velocityGrid = velocityGrid,
+              let distanceField = distanceField else { return }
+        
+        // Update distance field with current obstacles
+        distanceField.updateWithObstacles(obstacles)
+        
+        // Compute flow field based on current mode
+        switch visualizationMode {
+        case .flowMatching:
+            velocityGrid.computeFlowMatchingField(
+                start: startPoint,
+                goal: goalPoint,
+                distanceField: distanceField
+            )
+        case .diffusion:
+            velocityGrid.computeDiffusionField(
+                start: startPoint,
+                goal: goalPoint,
+                distanceField: distanceField
+            )
+        case .neuralODE:
+            if let model = modelIO.loadedModel {
+                velocityGrid.computeNeuralField(model: model, distanceField: distanceField)
+            }
+        }
+        
+        // Update renderer with new velocity field
+        renderer?.updateVelocityField(velocityGrid.velocityData)
+    }
+    
+    // MARK: - User Interactions
+    func addObstacle(at point: CGPoint) {
+        let obstacle = Obstacle(center: point, radius: 0.05, type: .circle)
+        obstacles.append(obstacle)
+        updateVelocityField()  // Real-time update
+    }
+}`
+                },
+                controls: {
+                    title: 'ControlsPanel.swift - Interactive UI Controls',
+                    description: '3-tab interface for flow parameters, particles, and scene management',
+                    code: `import SwiftUI
+
+struct ControlsPanel: View {
+    @ObservedObject var viewModel: FlowVizViewModel
+    @State private var selectedTab = 0
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Tab selector
+            Picker("Controls", selection: $selectedTab) {
+                Text("Flow").tag(0)
+                Text("Particles").tag(1)
+                Text("Scene").tag(2)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding()
+            
+            // Tab content
+            TabView(selection: $selectedTab) {
+                FlowControlsView(viewModel: viewModel).tag(0)
+                ParticleControlsView(viewModel: viewModel).tag(1)
+                SceneControlsView(viewModel: viewModel).tag(2)
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+        }
+    }
+}
+
+struct FlowControlsView: View {
+    @ObservedObject var viewModel: FlowVizViewModel
+    
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Visualization Mode Picker
+                GroupBox("Visualization Mode") {
+                    Picker("Mode", selection: $viewModel.visualizationMode) {
+                        ForEach(VisualizationMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .onChange(of: viewModel.visualizationMode) { _ in
+                        viewModel.updateVelocityField()
+                    }
+                }
+                
+                // Flow Parameters
+                GroupBox("Flow Parameters") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Flow Speed")
+                            Spacer()
+                            Text(String(format: "%.2f", viewModel.flowSpeed))
+                        }
+                        Slider(value: $viewModel.flowSpeed, in: 0.1...3.0)
+                            .onChange(of: viewModel.flowSpeed) { _ in
+                                viewModel.updateVelocityField()
+                            }
+                        
+                        Toggle("Show Velocity Field", isOn: $viewModel.showVelocityField)
+                        Toggle("Show Trajectories", isOn: $viewModel.showTrajectories)
+                    }
+                }
+            }
+        }
+    }
+}`
+                },
+                metal: {
+                    title: 'MetalRenderer.swift - GPU Particle System',
+                    description: 'Metal-based renderer with compute shaders for 10,000+ particles at 60 FPS',
+                    code: `import Metal
+import MetalKit
+import simd
+
+class MetalRenderer: NSObject, MTKViewDelegate {
+    private var device: MTLDevice!
+    private var commandQueue: MTLCommandQueue!
+    private var renderPipelineState: MTLRenderPipelineState!
+    private var computePipelineState: MTLComputePipelineState!
+    
+    // GPU Buffers
+    private var particleBuffer: MTLBuffer!
+    private var velocityFieldBuffer: MTLBuffer!
+    private var uniformBuffer: MTLBuffer!
+    
+    // Particle system
+    private var particleCount: Int = 10000
+    private var particles: [Particle] = []
+    
+    func setup(device: MTLDevice, view: MTKView) {
+        self.device = device
+        self.commandQueue = device.makeCommandQueue()!
+        
+        setupShaders()
+        setupBuffers()
+        initializeParticles()
+    }
+    
+    private func setupShaders() {
+        guard let library = device.makeDefaultLibrary() else {
+            fatalError("Could not create Metal library")
+        }
+        
+        // Render pipeline for particles
+        let renderPipelineDescriptor = MTLRenderPipelineDescriptor()
+        renderPipelineDescriptor.vertexFunction = library.makeFunction(name: "particle_vertex")
+        renderPipelineDescriptor.fragmentFunction = library.makeFunction(name: "particle_fragment")
+        renderPipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+        
+        // Enable blending for glow effects
+        renderPipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
+        renderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
+        renderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+        
+        do {
+            renderPipelineState = try device.makeRenderPipelineState(descriptor: renderPipelineDescriptor)
+        } catch {
+            fatalError("Could not create render pipeline state: \(error)")
+        }
+        
+        // Compute pipeline for particle updates
+        do {
+            computePipelineState = try device.makeComputePipelineState(
+                function: library.makeFunction(name: "update_particles")!
+            )
+        } catch {
+            fatalError("Could not create compute pipeline state: \(error)")
+        }
+    }
+    
+    // MARK: - MTKViewDelegate
+    func draw(in view: MTKView) {
+        guard let drawable = view.currentDrawable,
+              let renderPassDescriptor = view.currentRenderPassDescriptor else { return }
+        
+        let commandBuffer = commandQueue.makeCommandBuffer()!
+        
+        // Update particles with compute shader
+        updateParticles(commandBuffer: commandBuffer)
+        
+        // Render particles
+        renderParticles(commandBuffer: commandBuffer, renderPassDescriptor: renderPassDescriptor)
+        
+        commandBuffer.present(drawable)
+        commandBuffer.commit()
+    }
+}`
+                },
+                shaders: {
+                    title: 'Shaders.metal - GPU Compute & Rendering',
+                    description: 'Metal shaders for particle physics simulation and rendering with glow effects',
+                    code: `#include <metal_stdlib>
+using namespace metal;
+
+struct Particle {
+    float2 position;
+    float2 velocity;
+    float life;
+    float maxLife;
+};
+
+struct Uniforms {
+    float time;
+    float deltaTime;
+    float2 screenSize;
+    float aspectRatio;
+    float flowSpeed;
+    float particleSize;
+};
+
+struct VertexOut {
+    float4 position [[position]];
+    float pointSize [[point_size]];
+    float life;
+    float4 color;
+};
+
+// MARK: - Vertex Shader
+vertex VertexOut particle_vertex(uint vertexID [[vertex_id]],
+                                constant Particle* particles [[buffer(0)]],
+                                constant Uniforms& uniforms [[buffer(1)]]) {
+    Particle particle = particles[vertexID];
+    
+    VertexOut out;
+    
+    // Convert normalized coordinates to clip space
+    float2 clipPos = particle.position * 2.0 - 1.0;
+    clipPos.y = -clipPos.y; // Flip Y coordinate
+    out.position = float4(clipPos, 0.0, 1.0);
+    
+    // Calculate particle properties
+    float lifeRatio = particle.life / particle.maxLife;
+    out.life = lifeRatio;
+    out.pointSize = uniforms.particleSize * (0.5 + lifeRatio * 0.5);
+    
+    // Color based on velocity magnitude and life
+    float speed = length(particle.velocity);
+    float3 baseColor = float3(0.2, 0.8, 1.0); // Cyan base
+    float3 fastColor = float3(1.0, 0.4, 0.8);  // Pink for fast particles
+    
+    float speedFactor = saturate(speed * 10.0);
+    float3 color = mix(baseColor, fastColor, speedFactor);
+    
+    out.color = float4(color, lifeRatio * 0.8);
+    
+    return out;
+}
+
+// MARK: - Fragment Shader
+fragment float4 particle_fragment(VertexOut in [[stage_in]],
+                                 float2 pointCoord [[point_coord]]) {
+    // Create circular particle with soft edges
+    float2 center = float2(0.5, 0.5);
+    float distance = length(pointCoord - center);
+    
+    // Soft circular falloff
+    float alpha = 1.0 - smoothstep(0.3, 0.5, distance);
+    alpha *= in.color.a;
+    
+    // Add glow effect
+    float glow = 1.0 - smoothstep(0.0, 0.8, distance);
+    glow *= 0.3;
+    
+    float4 finalColor = in.color;
+    finalColor.a = alpha + glow;
+    
+    return finalColor;
+}
+
+// MARK: - Compute Shader for Particle Physics
+kernel void update_particles(uint index [[thread_position_in_grid]],
+                           device Particle* particles [[buffer(0)]],
+                           constant float2* velocityField [[buffer(1)]],
+                           constant Uniforms& uniforms [[buffer(2)]]) {
+    
+    if (index >= 10000) return; // Max particle count
+    
+    Particle particle = particles[index];
+    
+    // Sample velocity from grid (bilinear interpolation)
+    float2 gridPos = particle.position * 127.0; // 128x128 grid
+    int2 gridIndex = int2(gridPos);
+    float2 frac = fract(gridPos);
+    
+    // Clamp to grid bounds
+    gridIndex = clamp(gridIndex, int2(0), int2(126));
+    
+    // Sample four neighboring grid points
+    float2 v00 = velocityField[gridIndex.y * 128 + gridIndex.x];
+    float2 v10 = velocityField[gridIndex.y * 128 + (gridIndex.x + 1)];
+    float2 v01 = velocityField[(gridIndex.y + 1) * 128 + gridIndex.x];
+    float2 v11 = velocityField[(gridIndex.y + 1) * 128 + (gridIndex.x + 1)];
+    
+    // Bilinear interpolation
+    float2 v0 = mix(v00, v10, frac.x);
+    float2 v1 = mix(v01, v11, frac.x);
+    float2 sampledVelocity = mix(v0, v1, frac.y);
+    
+    // Update particle velocity and position
+    particle.velocity = mix(particle.velocity, sampledVelocity * uniforms.flowSpeed, 0.1);
+    particle.position += particle.velocity * uniforms.deltaTime;
+    
+    // Boundary conditions (wrap around)
+    if (particle.position.x < 0.0) particle.position.x = 1.0;
+    if (particle.position.x > 1.0) particle.position.x = 0.0;
+    if (particle.position.y < 0.0) particle.position.y = 1.0;
+    if (particle.position.y > 1.0) particle.position.y = 0.0;
+    
+    particles[index] = particle;
+}`
+                },
+                velocity: {
+                    title: 'VelocityGrid.swift - Flow Field Computation',
+                    description: 'Mathematical computation of flow fields with obstacle avoidance',
+                    code: `import Foundation
+import simd
+
+class VelocityGrid {
+    let width: Int
+    let height: Int
+    private(set) var velocityData: [simd_float2]
+    
+    init(width: Int, height: Int) {
+        self.width = width
+        self.height = height
+        self.velocityData = Array(repeating: simd_float2(0, 0), count: width * height)
+    }
+    
+    /// Compute flow matching velocity field
+    func computeFlowMatchingField(start: CGPoint, goal: CGPoint, distanceField: DistanceField) {
+        let startPoint = simd_float2(Float(start.x), Float(start.y))
+        let goalPoint = simd_float2(Float(goal.x), Float(goal.y))
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                let gridPoint = simd_float2(
+                    Float(x) / Float(width - 1),
+                    Float(y) / Float(height - 1)
+                )
+                
+                // Basic flow matching: direct interpolation between start and goal
+                let t = computeFlowTime(point: gridPoint, start: startPoint, goal: goalPoint)
+                let velocity = computeFlowVelocity(point: gridPoint, start: startPoint, goal: goalPoint, t: t)
+                
+                // Apply obstacle avoidance
+                let modifiedVelocity = applyObstacleAvoidance(
+                    velocity: velocity,
+                    point: gridPoint,
+                    distanceField: distanceField
+                )
+                
+                setVelocity(x: x, y: y, velocity: modifiedVelocity)
+            }
+        }
+    }
+    
+    /// Compute diffusion-style velocity field
+    func computeDiffusionField(start: CGPoint, goal: CGPoint, distanceField: DistanceField) {
+        let startPoint = simd_float2(Float(start.x), Float(start.y))
+        let goalPoint = simd_float2(Float(goal.x), Float(goal.y))
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                let gridPoint = simd_float2(
+                    Float(x) / Float(width - 1),
+                    Float(y) / Float(height - 1)
+                )
+                
+                // Diffusion-style: gradient toward goal with noise
+                let toGoal = goalPoint - gridPoint
+                let distance = length(toGoal)
+                
+                var velocity = GeometryUtils.safeNormalize(toGoal) * (1.0 / (1.0 + distance))
+                
+                // Add some curl for visual interest
+                let curl = simd_float2(-velocity.y, velocity.x) * 0.2
+                velocity += curl
+                
+                // Apply obstacle avoidance
+                let modifiedVelocity = applyObstacleAvoidance(
+                    velocity: velocity,
+                    point: gridPoint,
+                    distanceField: distanceField
+                )
+                
+                setVelocity(x: x, y: y, velocity: modifiedVelocity)
+            }
+        }
+    }
+    
+    private func applyObstacleAvoidance(velocity: simd_float2, point: simd_float2, distanceField: DistanceField) -> simd_float2 {
+        let distance = distanceField.sampleDistance(at: point)
+        let gradient = distanceField.sampleGradient(at: point)
+        
+        // If we're close to an obstacle, add repulsion
+        let repulsionStrength: Float = 2.0
+        let repulsionRadius: Float = 0.1
+        
+        if distance < repulsionRadius {
+            let repulsionForce = GeometryUtils.safeNormalize(gradient) * (repulsionStrength * (repulsionRadius - distance) / repulsionRadius)
+            return velocity + repulsionForce
+        }
+        
+        return velocity
+    }
+}`
+                }
+            };
+            
+            const file = files[fileType];
+            if (file) {
+                setActiveButton(Object.keys(files).indexOf(fileType) + 1);
+                document.getElementById('content').innerHTML = `
+                    <div class="file-section">
+                        <div class="file-header">
+                            <div class="file-path">${file.title}</div>
+                            <div class="file-description">${file.description}</div>
+                        </div>
+                        <div class="code-block">${highlightSwift(file.code)}</div>
+                    </div>
+                `;
+            }
+        }
+        
+        function highlightSwift(code) {
+            return code
+                .replace(/\b(import|struct|class|func|var|let|if|else|for|while|return|private|public|override|init|deinit|@Published|@StateObject|@ObservedObject|@State)\b/g, '<span class="swift-keyword">$1</span>')
+                .replace(/"[^"]*"/g, '<span class="swift-string">$&</span>')
+                .replace(/\/\/.*$/gm, '<span class="swift-comment">$&</span>')
+                .replace(/\b(View|ObservableObject|MTKView|MTLDevice|Float|Int|String|CGPoint|simd_float2)\b/g, '<span class="swift-type">$1</span>')
+                .replace(/\b(setupMetal|updateVelocityField|computeFlowMatchingField|draw)\b/g, '<span class="swift-function">$1</span>');
+        }
+        
+        function setActiveButton(index) {
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+        }
+        
+        // Show overview by default
+        showOverview();
+    </script>
+</body>
+</html>
