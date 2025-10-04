@@ -18,7 +18,7 @@ class TrajectorySampler {
             let velocity = velocityField.sampleVelocity(at: currentPoint)
             
             // Check if velocity is too small (reached equilibrium)
-            if length(velocity) < 1e-4 {
+            if length(velocity) < (1e-4 as Float) {
                 break
             }
             
@@ -52,10 +52,13 @@ class TrajectorySampler {
             let k3 = velocityField.sampleVelocity(at: currentPoint + k2 * stepSize * 0.5)
             let k4 = velocityField.sampleVelocity(at: currentPoint + k3 * stepSize)
             
-            let velocity = (k1 + k2 * 2 + k3 * 2 + k4) / 6
+            let two: Float = 2.0
+            let six: Float = 6.0
+            let sum = k1 + k2 * two + k3 * two + k4
+            let velocity = sum / six
             
             // Check if velocity is too small
-            if length(velocity) < 1e-4 {
+            if length(velocity) < (1e-4 as Float) {
                 break
             }
             
@@ -142,7 +145,7 @@ class StreamlineSampler {
             let speed = length(velocity)
             
             // Stop if velocity is too small
-            if speed < 1e-4 {
+            if speed < (1e-4 as Float) {
                 break
             }
             
@@ -384,3 +387,4 @@ class SamplingPatterns {
         return true
     }
 }
+

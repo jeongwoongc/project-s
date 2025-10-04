@@ -5,8 +5,8 @@ import Combine
 class FlowVizViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var isPlaying = true
-    @Published var particleCount: Float = 10000
-    @Published var flowSpeed: Float = 1.0
+    @Published var particleCount: Float = 20000
+    @Published var flowSpeed: Float = 1.2
     @Published var visualizationMode: VisualizationMode = .flowMatching
     @Published var showVelocityField = true
     @Published var showTrajectories = true
@@ -18,30 +18,33 @@ class FlowVizViewModel: ObservableObject {
     @Published var obstacles: [Obstacle] = []
     
     // MARK: - Rendering
-    var renderer: MetalRenderer!
+    let renderer = MetalRenderer()
     private var metalView: MTKView?
     
     // MARK: - Core Components
-    private var velocityGrid: VelocityGrid!
-    private var distanceField: DistanceField!
-    private var modelIO: ModelIO!
+    private var velocityGrid: VelocityGrid?
+    private var distanceField: DistanceField?
+    private var modelIO = ModelIO()
     
     init() {
         setupDefaultScene()
     }
     
-    func setupMetal() {
-        renderer = MetalRenderer()
-    }
-    
     func setupRenderer(metalView: MTKView) {
         self.metalView = metalView
-        renderer.setup(device: metalView.device!, view: metalView)
+        if metalView.device == nil {
+            metalView.device = MTLCreateSystemDefaultDevice()
+        }
+        guard let device = metalView.device else {
+            assertionFailure("No Metal device available on this machine.")
+            return
+        }
+        renderer.setup(device: device, view: metalView)
+        metalView.delegate = renderer
         
         // Initialize core components
         velocityGrid = VelocityGrid(width: 128, height: 128)
         distanceField = DistanceField(width: 128, height: 128)
-        modelIO = ModelIO()
         
         updateVelocityField()
     }
@@ -78,10 +81,34 @@ class FlowVizViewModel: ObservableObject {
             if let model = modelIO.loadedModel {
                 velocityGrid.computeNeuralField(model: model, distanceField: distanceField)
             }
+        case .vortexStorm:
+            velocityGrid.computeVortexStormField(
+                start: startPoint,
+                goal: goalPoint,
+                distanceField: distanceField
+            )
         }
         
-        // Update renderer with new velocity field
-        renderer?.updateVelocityField(velocityGrid.velocityData)
+        // Update renderer with new velocity field, scaled by flowSpeed for visual impact
+        let scaledField = velocityGrid.velocityData.map { $0 * flowSpeed }
+        renderer.updateVelocityField(scaledField)
+    }
+    
+    // MARK: - Renderer Control
+
+    func setParticleCount(_ count: Int) {
+        renderer.setParticleCount(Int(count))
+    }
+
+    func setPlaying(_ playing: Bool) {
+        renderer.setPlaying(playing)
+    }
+
+    func setFlowSpeed(_ speed: Float) {
+        // Update local state
+        flowSpeed = speed
+        // Recompute or rescale velocity field to reflect speed changes
+        updateVelocityField()
     }
     
     // MARK: - User Interactions
@@ -129,6 +156,7 @@ enum VisualizationMode: String, CaseIterable {
     case flowMatching = "Flow Matching"
     case diffusion = "Diffusion"
     case neuralODE = "Neural ODE"
+    case vortexStorm = "Vortex Storm"
 }
 
 struct Obstacle {

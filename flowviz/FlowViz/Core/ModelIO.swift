@@ -1,5 +1,6 @@
 import Foundation
 import CoreML
+import simd
 
 /// Handles Core ML model loading and inference for neural flow fields
 class ModelIO {
@@ -23,7 +24,7 @@ class ModelIO {
     
     /// Load model from bundle
     func loadModelFromBundle(named modelName: String) throws {
-        guard let url = Bundle.main.url(forResource: modelName, withExtension: "mlmodel") else {
+        guard let url = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc") else {
             throw ModelIOError.modelNotFound(modelName)
         }
         
@@ -109,7 +110,7 @@ class ModelIO {
         
         // Position features (Nx2 array)
         let positionArray = positions.flatMap { [$0.x, $0.y] }
-        let positionMLArray = try MLMultiArray(shape: [NSNumber(value: positions.count), 2], dataType: .float32)
+        let positionMLArray = try MLMultiArray(shape: [NSNumber(value: positions.count), NSNumber(value: 2)], dataType: .float32)
         for (i, value) in positionArray.enumerated() {
             positionMLArray[i] = NSNumber(value: value)
         }
@@ -118,19 +119,19 @@ class ModelIO {
         // Obstacle features (Mx4 array: x, y, radius, type)
         if !obstacles.isEmpty {
             let obstacleArray = obstacles.flatMap { [$0.center.x, $0.center.y, $0.radius, Float($0.type.rawValue)] }
-            let obstacleMLArray = try MLMultiArray(shape: [NSNumber(value: obstacles.count), 4], dataType: .float32)
+            let obstacleMLArray = try MLMultiArray(shape: [NSNumber(value: obstacles.count), NSNumber(value: 4)], dataType: .float32)
             for (i, value) in obstacleArray.enumerated() {
                 obstacleMLArray[i] = NSNumber(value: value)
             }
             features["obstacles"] = MLFeatureValue(multiArray: obstacleMLArray)
         } else {
             // Empty obstacle array
-            let emptyObstacles = try MLMultiArray(shape: [1, 4], dataType: .float32)
+            let emptyObstacles = try MLMultiArray(shape: [NSNumber(value: 1), NSNumber(value: 4)], dataType: .float32)
             features["obstacles"] = MLFeatureValue(multiArray: emptyObstacles)
         }
         
         // Context features
-        let contextArray = try MLMultiArray(shape: [6], dataType: .float32)
+        let contextArray = try MLMultiArray(shape: [NSNumber(value: 6)], dataType: .float32)
         contextArray[0] = NSNumber(value: context.startPoint.x)
         contextArray[1] = NSNumber(value: context.startPoint.y)
         contextArray[2] = NSNumber(value: context.goalPoint.x)

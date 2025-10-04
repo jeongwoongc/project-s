@@ -5,16 +5,24 @@ struct HUD: View {
     @State private var showingInfo = false
     
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             // Play/Pause button
-            Button(action: { viewModel.isPlaying.toggle() }) {
-                Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(.ultraThinMaterial))
+            Button(action: { 
+                viewModel.isPlaying.toggle()
+                viewModel.setPlaying(viewModel.isPlaying)
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
             }
             .buttonStyle(PlainButtonStyle())
+            .help(viewModel.isPlaying ? "Pause" : "Play")
             
             // Current mode indicator
             VStack(alignment: .leading, spacing: 2) {
@@ -26,8 +34,8 @@ struct HUD: View {
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
             .background(Capsule().fill(.ultraThinMaterial))
             
             // Performance indicator
@@ -35,13 +43,18 @@ struct HUD: View {
             
             // Info button
             Button(action: { showingInfo.toggle() }) {
-                Image(systemName: "info.circle")
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(.ultraThinMaterial))
+                ZStack {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "info.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.white)
+                }
             }
             .buttonStyle(PlainButtonStyle())
+            .help("Show controls")
             .popover(isPresented: $showingInfo) {
                 InfoPopover()
             }

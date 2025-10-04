@@ -1,5 +1,6 @@
 import Metal
 import simd
+import QuartzCore
 
 /// Manages Metal buffers for efficient GPU data transfer
 class BufferManager {
@@ -155,3 +156,4 @@ class PerformanceMonitor {
         return frameTime * 1000.0 // Convert to milliseconds
     }
 }
+

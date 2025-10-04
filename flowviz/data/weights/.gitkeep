@@ -1,9 +1,0 @@
-# This directory will contain trained ML model weights
-# 
-# Expected files:
-# - cfm_toy2d_v1.mlmodel - Core ML model for 2D flow matching
-# - velocity_field_v1.mlmodel - Simplified velocity field model
-# - unet_dense_v1.mlmodel - U-Net for dense flow field prediction
-#
-# Models should be generated using the training pipeline in /model/
-# and exported using export_coreml.py

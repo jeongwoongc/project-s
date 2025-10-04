@@ -41,17 +41,38 @@ vertex VertexOut particle_vertex(uint vertexID [[vertex_id]],
     // Calculate particle properties
     float lifeRatio = particle.life / particle.maxLife;
     out.life = lifeRatio;
-    out.pointSize = uniforms.particleSize * (0.5 + lifeRatio * 0.5);
     
-    // Color based on velocity magnitude and life
+    // Dynamic particle size based on life and speed
     float speed = length(particle.velocity);
-    float3 baseColor = float3(0.2, 0.8, 1.0); // Cyan base
-    float3 fastColor = float3(1.0, 0.4, 0.8);  // Pink for fast particles
+    float sizeMultiplier = 1.0 + speed * 2.0; // Faster particles are bigger
+    out.pointSize = uniforms.particleSize * (0.3 + lifeRatio * 0.7) * sizeMultiplier;
     
-    float speedFactor = saturate(speed * 10.0);
-    float3 color = mix(baseColor, fastColor, speedFactor);
+    // Enhanced color palette with smooth transitions - vibrant cool tones
+    float speedFactor = saturate(speed * 8.0);
     
-    out.color = float4(color, lifeRatio * 0.8);
+    // Create a rainbow gradient based on speed and position
+    float hueShift = speedFactor + uniforms.time * 0.1 + particle.position.x * 0.3;
+    hueShift = fract(hueShift);
+    
+    float3 slowColor = float3(0.1, 0.4, 1.0);      // Deep blue
+    float3 medColor = float3(0.2, 0.9, 1.0);       // Bright cyan
+    float3 fastColor = float3(0.9, 0.3, 1.0);      // Vibrant purple/magenta
+    float3 ultraFastColor = float3(0.5, 1.0, 1.0); // Electric cyan
+    
+    float3 color;
+    if (speedFactor < 0.33) {
+        color = mix(slowColor, medColor, speedFactor * 3.0);
+    } else if (speedFactor < 0.66) {
+        color = mix(medColor, fastColor, (speedFactor - 0.33) * 3.0);
+    } else {
+        color = mix(fastColor, ultraFastColor, (speedFactor - 0.66) * 3.0);
+    }
+    
+    // Add subtle pulsing based on time
+    float pulse = 0.5 + 0.5 * sin(uniforms.time * 2.0 + float(vertexID) * 0.01);
+    color = mix(color, color * 1.3, pulse * 0.2);
+    
+    out.color = float4(color, lifeRatio * 0.9);
     
     return out;
 }
@@ -61,32 +82,52 @@ vertex VertexOut particle_vertex(uint vertexID [[vertex_id]],
 fragment float4 particle_fragment(VertexOut in [[stage_in]],
                                  float2 pointCoord [[point_coord]],
                                  constant Uniforms& uniforms [[buffer(0)]]) {
-    // Create circular particle with soft edges
+    // Create circular particle with enhanced glow
     float2 center = float2(0.5, 0.5);
-    float distance = length(pointCoord - center);
+    float dist = length(pointCoord - center);
     
-    // Soft circular falloff
-    float alpha = 1.0 - smoothstep(0.3, 0.5, distance);
+    // Multi-layered particle with core and glow
+    // Bright core
+    float core = 1.0 - smoothstep(0.0, 0.2, dist);
+    
+    // Middle layer
+    float middle = 1.0 - smoothstep(0.2, 0.4, dist);
+    
+    // Outer glow
+    float glow = 1.0 - smoothstep(0.0, 0.5, dist);
+    glow = pow(glow, 2.0); // Exponential falloff for softer glow
+    
+    // Combine layers
+    float alpha = core * 1.0 + middle * 0.7 + glow * 0.4;
     alpha *= in.color.a;
     
-    // Add some glow effect
-    float glow = 1.0 - smoothstep(0.0, 0.8, distance);
-    glow *= 0.3;
+    // Add shimmer effect
+    float shimmer = 1.0 + 0.3 * sin(uniforms.time * 5.0 + dist * 10.0);
     
-    float4 finalColor = in.color;
-    finalColor.a = alpha + glow;
+    // Enhanced color with brightness boost in center
+    float3 finalColor = in.color.rgb;
+    finalColor = mix(finalColor, finalColor * 1.5, core * 0.5); // Brighter core
+    finalColor *= shimmer;
     
-    return finalColor;
+    // Add bloom effect for very bright particles
+    float brightness = length(finalColor);
+    float bloom = smoothstep(1.0, 2.0, brightness) * glow * 0.5;
+    
+    return float4(finalColor, alpha + bloom);
 }
+
+// Forward declaration for frand utility
+float frand(uint seed);
 
 // MARK: - Compute Shader for Particle Updates
 
 kernel void update_particles(uint index [[thread_position_in_grid]],
                            device Particle* particles [[buffer(0)]],
                            constant float2* velocityField [[buffer(1)]],
-                           constant Uniforms& uniforms [[buffer(2)]]) {
+                           constant Uniforms& uniforms [[buffer(2)]],
+                           constant uint& particleCount [[buffer(3)]]) {
     
-    if (index >= 10000) return; // Max particle count
+    if (index >= particleCount) return; // Dynamic particle count
     
     Particle particle = particles[index];
     
@@ -109,17 +150,26 @@ kernel void update_particles(uint index [[thread_position_in_grid]],
     float2 v1 = mix(v01, v11, frac.x);
     float2 sampledVelocity = mix(v0, v1, frac.y);
     
-    // Update particle velocity (with some inertia)
-    particle.velocity = mix(particle.velocity, sampledVelocity * uniforms.flowSpeed, 0.1);
+    // Add subtle turbulence for more organic motion
+    float turbulence = sin(uniforms.time * 2.0 + float(index) * 0.1) * 0.002;
+    float2 turbulenceVec = float2(
+        cos(uniforms.time + particle.position.y * 10.0),
+        sin(uniforms.time + particle.position.x * 10.0)
+    ) * turbulence;
     
-    // Update position using Euler integration
+    // Update particle velocity with inertia and turbulence
+    float2 targetVelocity = sampledVelocity * uniforms.flowSpeed + turbulenceVec;
+    particle.velocity = mix(particle.velocity, targetVelocity, 0.15);
+    
+    // Update position using improved Euler integration
     particle.position += particle.velocity * uniforms.deltaTime;
     
-    // Boundary conditions (wrap around)
-    if (particle.position.x < 0.0) particle.position.x = 1.0;
-    if (particle.position.x > 1.0) particle.position.x = 0.0;
-    if (particle.position.y < 0.0) particle.position.y = 1.0;
-    if (particle.position.y > 1.0) particle.position.y = 0.0;
+    // Smooth boundary conditions with fade and wrap
+    float fadeMargin = 0.02;
+    if (particle.position.x < -fadeMargin) particle.position.x = 1.0 + fadeMargin;
+    if (particle.position.x > 1.0 + fadeMargin) particle.position.x = -fadeMargin;
+    if (particle.position.y < -fadeMargin) particle.position.y = 1.0 + fadeMargin;
+    if (particle.position.y > 1.0 + fadeMargin) particle.position.y = -fadeMargin;
     
     // Update life
     particle.life -= uniforms.deltaTime;
@@ -140,3 +190,4 @@ float frand(uint seed) {
     uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
     return float((word >> 22u) ^ word) / float(0xffffffffu);
 }
+
