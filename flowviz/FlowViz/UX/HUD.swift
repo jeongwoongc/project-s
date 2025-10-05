@@ -39,7 +39,7 @@ struct HUD: View {
             .background(Capsule().fill(.ultraThinMaterial))
             
             // Performance indicator
-            PerformanceIndicator()
+            PerformanceIndicator(fps: viewModel.currentFPS, frameTime: viewModel.currentFrameTime)
             
             // Info button
             Button(action: { showingInfo.toggle() }) {
@@ -56,15 +56,15 @@ struct HUD: View {
             .buttonStyle(PlainButtonStyle())
             .help("Show controls")
             .popover(isPresented: $showingInfo) {
-                InfoPopover()
+                InfoPopover(viewModel: viewModel)
             }
         }
     }
 }
 
 struct PerformanceIndicator: View {
-    @State private var fps: Double = 60.0
-    @State private var frameTime: Double = 16.7
+    let fps: Double
+    let frameTime: Double
     
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -85,10 +85,7 @@ struct PerformanceIndicator: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(Capsule().fill(.ultraThinMaterial))
-        .onReceive(Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()) { _ in
-            // Update performance metrics
-            updatePerformanceMetrics()
-        }
+        .animation(.easeInOut(duration: 0.3), value: fps)
     }
     
     private var fpsColor: Color {
@@ -100,16 +97,11 @@ struct PerformanceIndicator: View {
             return .red
         }
     }
-    
-    private func updatePerformanceMetrics() {
-        // Simulate performance metrics - in real implementation,
-        // these would come from the MetalRenderer
-        fps = Double.random(in: 55...62)
-        frameTime = 1000.0 / fps
-    }
 }
 
 struct InfoPopover: View {
+    @ObservedObject var viewModel: FlowVizViewModel
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("FlowViz Controls")
@@ -130,15 +122,16 @@ struct InfoPopover: View {
                     .font(.subheadline)
                     .bold()
                 
-                Text("• Flow Matching mode")
-                Text("• 10,000 particles")
-                Text("• Real-time velocity field")
+                Text("• \(viewModel.visualizationMode.rawValue) mode")
+                Text("• \(Int(viewModel.particleCount)) particles")
+                Text("• \(String(format: "%.1fx", viewModel.flowSpeed)) flow speed")
+                Text("• \(Int(viewModel.currentFPS)) FPS")
             }
             .font(.caption)
             .foregroundColor(.secondary)
         }
         .padding()
-        .frame(width: 250)
+        .frame(width: 270)
     }
 }
 
@@ -202,63 +195,60 @@ struct InteractionOverlay: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Invisible interaction area
+                // Invisible interaction area for obstacle placement
                 Color.clear
                     .contentShape(Rectangle())
-                    .onTapGesture { location in
-                        let normalizedPoint = CGPoint(
-                            x: location.x / geometry.size.width,
-                            y: location.y / geometry.size.height
-                        )
-                        viewModel.addObstacle(at: normalizedPoint)
-                    }
+                    .gesture(
+                        SpatialTapGesture()
+                            .onEnded { event in
+                                let location = event.location
+                                let normalizedPoint = CGPoint(
+                                    x: location.x / geometry.size.width,
+                                    y: location.y / geometry.size.height
+                                )
+                                viewModel.addObstacle(at: normalizedPoint)
+                            }
+                    )
                 
-                // Start point indicator
-                Circle()
-                    .fill(.green)
-                    .frame(width: 20, height: 20)
+                // Start point indicator (Green Pin)
+                StartPointMarker()
                     .position(
                         x: viewModel.startPoint.x * geometry.size.width,
                         y: viewModel.startPoint.y * geometry.size.height
                     )
                     .gesture(
-                        DragGesture()
+                        DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 let normalizedPoint = CGPoint(
-                                    x: value.location.x / geometry.size.width,
-                                    y: value.location.y / geometry.size.height
+                                    x: max(0, min(1, value.location.x / geometry.size.width)),
+                                    y: max(0, min(1, value.location.y / geometry.size.height))
                                 )
                                 viewModel.updateStartPoint(normalizedPoint)
                             }
                     )
+                    .help("Drag to move start point")
                 
-                // Goal point indicator
-                Circle()
-                    .fill(.red)
-                    .frame(width: 20, height: 20)
+                // Goal point indicator (Red Target)
+                GoalPointMarker()
                     .position(
                         x: viewModel.goalPoint.x * geometry.size.width,
                         y: viewModel.goalPoint.y * geometry.size.height
                     )
                     .gesture(
-                        DragGesture()
+                        DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 let normalizedPoint = CGPoint(
-                                    x: value.location.x / geometry.size.width,
-                                    y: value.location.y / geometry.size.height
+                                    x: max(0, min(1, value.location.x / geometry.size.width)),
+                                    y: max(0, min(1, value.location.y / geometry.size.height))
                                 )
                                 viewModel.updateGoalPoint(normalizedPoint)
                             }
                     )
+                    .help("Drag to move goal point")
                 
-                // Obstacle indicators
+                // Obstacle indicators (Liquid Glass Style)
                 ForEach(Array(viewModel.obstacles.enumerated()), id: \.element.id) { index, obstacle in
-                    Circle()
-                        .stroke(.red, lineWidth: 2)
-                        .frame(
-                            width: obstacle.radius * 2 * geometry.size.width,
-                            height: obstacle.radius * 2 * geometry.size.height
-                        )
+                    LiquidGlassObstacle(radius: obstacle.radius * geometry.size.width)
                         .position(
                             x: obstacle.center.x * geometry.size.width,
                             y: obstacle.center.y * geometry.size.height
@@ -266,6 +256,139 @@ struct InteractionOverlay: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Point Markers (Subtle Particle Style)
+
+struct StartPointMarker: View {
+    var body: some View {
+        ZStack {
+            // Very subtle outer glow (matches particle glow)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.4, green: 1.0, blue: 0.6).opacity(0.15),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 30
+                    )
+                )
+                .frame(width: 60, height: 60)
+                .blur(radius: 6)
+            
+            // Subtle ring (barely visible)
+            Circle()
+                .stroke(
+                    Color(red: 0.5, green: 1.0, blue: 0.7).opacity(0.2),
+                    lineWidth: 1
+                )
+                .frame(width: 24, height: 24)
+            
+            // Core particle
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.6, green: 1.0, blue: 0.8).opacity(0.8),
+                            Color(red: 0.4, green: 0.9, blue: 0.6).opacity(0.4),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 6
+                    )
+                )
+                .frame(width: 12, height: 12)
+                .blur(radius: 1)
+            
+            // Bright center (like a particle)
+            Circle()
+                .fill(Color(red: 0.7, green: 1.0, blue: 0.9).opacity(0.9))
+                .frame(width: 4, height: 4)
+                .blur(radius: 0.5)
+            
+            // Interaction area (invisible but captures gestures)
+            Circle()
+                .fill(Color.clear)
+                .contentShape(Circle())
+                .frame(width: 80, height: 80)
+        }
+    }
+}
+
+struct GoalPointMarker: View {
+    var body: some View {
+        ZStack {
+            // Very subtle outer glow (matches particle glow)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 1.0, green: 0.5, blue: 0.6).opacity(0.15),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 30
+                    )
+                )
+                .frame(width: 60, height: 60)
+                .blur(radius: 6)
+            
+            // Subtle ring (barely visible)
+            Circle()
+                .stroke(
+                    Color(red: 1.0, green: 0.6, blue: 0.7).opacity(0.2),
+                    lineWidth: 1
+                )
+                .frame(width: 24, height: 24)
+            
+            // Core particle
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 1.0, green: 0.7, blue: 0.8).opacity(0.8),
+                            Color(red: 1.0, green: 0.5, blue: 0.6).opacity(0.4),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 6
+                    )
+                )
+                .frame(width: 12, height: 12)
+                .blur(radius: 1)
+            
+            // Bright center (like a particle)
+            Circle()
+                .fill(Color(red: 1.0, green: 0.8, blue: 0.9).opacity(0.9))
+                .frame(width: 4, height: 4)
+                .blur(radius: 0.5)
+            
+            // Interaction area (invisible but captures gestures)
+            Circle()
+                .fill(Color.clear)
+                .contentShape(Circle())
+                .frame(width: 80, height: 80)
+        }
+    }
+}
+
+// MARK: - Liquid Glass Obstacle (Invisible)
+
+struct LiquidGlassObstacle: View {
+    let radius: CGFloat
+    
+    var body: some View {
+        // Invisible but still defines the obstacle position
+        Circle()
+            .fill(Color.clear)
+            .frame(width: radius * 2, height: radius * 2)
     }
 }
 

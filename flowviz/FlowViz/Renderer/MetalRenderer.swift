@@ -22,6 +22,16 @@ class MetalRenderer: NSObject, MTKViewDelegate {
     private var uniforms = Uniforms()
     private var isPlaying: Bool = true
     
+    // Performance tracking
+    private var lastFrameTime: CFTimeInterval = 0
+    private var frameTimes: [Double] = []
+    private let maxFrameTimeSamples = 30
+    var currentFPS: Double = 60.0
+    var currentFrameTime: Double = 16.7
+    
+    // Callbacks for performance updates
+    var onPerformanceUpdate: ((Double, Double) -> Void)?
+    
     override init() {
         super.init()
     }
@@ -119,6 +129,14 @@ class MetalRenderer: NSObject, MTKViewDelegate {
         isPlaying = playing
     }
     
+    func setFlowSpeed(_ speed: Float) {
+        guard speed.isFinite, speed > 0 else {
+            uniforms.flowSpeed = 1.0
+            return
+        }
+        uniforms.flowSpeed = max(0.1, min(speed, 10.0))
+    }
+    
     private func updateParticleBuffer() {
         let bufferPointer = particleBuffer.contents().bindMemory(to: Particle.self, capacity: particleCount)
         for (index, particle) in particles.enumerated() {
@@ -127,22 +145,64 @@ class MetalRenderer: NSObject, MTKViewDelegate {
     }
     
     func updateVelocityField(_ velocityData: [simd_float2]) {
+        guard velocityData.count == 128 * 128 else {
+            print("Warning: Invalid velocity field size: \(velocityData.count), expected 16384")
+            return
+        }
+        
         let bufferPointer = velocityFieldBuffer.contents().bindMemory(to: simd_float2.self, capacity: 128 * 128)
         for (index, velocity) in velocityData.enumerated() {
-            bufferPointer[index] = velocity
+            // Sanitize velocity data before sending to GPU
+            let sanitized = simd_float2(
+                velocity.x.isFinite ? velocity.x : 0.0,
+                velocity.y.isFinite ? velocity.y : 0.0
+            )
+            bufferPointer[index] = sanitized
         }
     }
     
     // MARK: - MTKViewDelegate
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+        // Validate size to prevent invalid Metal state
+        guard size.width > 0, size.height > 0,
+              size.width.isFinite, size.height.isFinite else {
+            return
+        }
+        
         uniforms.screenSize = simd_float2(Float(size.width), Float(size.height))
-        uniforms.aspectRatio = Float(size.width / size.height)
+        let aspectRatio = Float(size.width / size.height)
+        
+        // Ensure aspect ratio is valid
+        if aspectRatio.isFinite && aspectRatio > 0 {
+            uniforms.aspectRatio = aspectRatio
+        }
     }
     
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor else { return }
+        
+        // Track frame timing
+        let currentTime = CACurrentMediaTime()
+        if lastFrameTime > 0 {
+            let frameTime = (currentTime - lastFrameTime) * 1000.0 // Convert to ms
+            frameTimes.append(frameTime)
+            if frameTimes.count > maxFrameTimeSamples {
+                frameTimes.removeFirst()
+            }
+            
+            // Calculate smoothed average
+            let avgFrameTime = frameTimes.reduce(0, +) / Double(frameTimes.count)
+            currentFrameTime = avgFrameTime
+            currentFPS = 1000.0 / avgFrameTime
+            
+            // Notify observers (throttled to avoid too many updates)
+            if frameTimes.count >= maxFrameTimeSamples {
+                onPerformanceUpdate?(currentFPS, currentFrameTime)
+            }
+        }
+        lastFrameTime = currentTime
         
         let commandBuffer = commandQueue.makeCommandBuffer()!
         
@@ -166,17 +226,29 @@ class MetalRenderer: NSObject, MTKViewDelegate {
         computeEncoder.setBuffer(uniformBuffer, offset: 0, index: 2)
         computeEncoder.setBuffer(particleCountBuffer, offset: 0, index: 3)
         
-        // Update uniforms
-        uniforms.time += 1.0 / 60.0 // Assuming 60 FPS
-        uniforms.deltaTime = 1.0 / 60.0
+        // Update uniforms using actual frame time for smooth animation
+        let actualDeltaTime = Float(currentFrameTime / 1000.0)
+        
+        // Validate time values
+        if actualDeltaTime.isFinite && actualDeltaTime >= 0 {
+            uniforms.time += actualDeltaTime
+            uniforms.deltaTime = min(actualDeltaTime, 1.0 / 30.0) // Cap at 30 FPS to prevent huge jumps
+        } else {
+            uniforms.deltaTime = 1.0 / 60.0
+        }
         
         // Improve visibility and propagate flow speed
-        uniforms.flowSpeed = max(0.1, uniforms.flowSpeed)
+        if uniforms.flowSpeed.isFinite && uniforms.flowSpeed > 0 {
+            uniforms.flowSpeed = max(0.1, min(uniforms.flowSpeed, 10.0))
+        } else {
+            uniforms.flowSpeed = 1.0
+        }
         uniforms.particleSize = 3.0
         
         let uniformPointer = uniformBuffer.contents().bindMemory(to: Uniforms.self, capacity: 1)
         uniformPointer[0] = uniforms
         
+        // Optimize threadgroup size for better GPU utilization
         let threadsPerGroup = MTLSize(width: 64, height: 1, depth: 1)
         let numThreadgroups = MTLSize(width: (particleCount + 63) / 64, height: 1, depth: 1)
         
